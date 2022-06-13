@@ -145,7 +145,6 @@ def change_student(id):
 @app.route('/api/students/modify/<int:id>', methods=['PATCH'])
 def modify_student(id):
     student_to_modify = Student.query.filter(Student.id == id).one_or_none()
-    print(student_to_modify)
 
     if student_to_modify:
         json_data = request.get_json()
