@@ -6,3 +6,4 @@ sqlalchemy
 sqlalchemy_utils
 marshmallow-sqlalchemy
 cryptography
+flask-swagger-ui
