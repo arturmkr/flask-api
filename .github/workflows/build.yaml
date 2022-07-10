@@ -80,7 +80,7 @@ jobs:
             --name flask-app \
             --restart always \
             -p 5000:5000 \
-            -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
+            -e DB_USERNAME=${{ secrets.DB_USER }} \
             -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
             -e DB_HOSTNAME=${{ secrets.DB_HOSTNAME }} \
             -e DB_NAME=${{ env.DB_NAME }} \
