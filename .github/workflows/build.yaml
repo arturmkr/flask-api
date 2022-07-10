@@ -87,6 +87,10 @@ jobs:
             -e DB_HOSTNAME=${{ secrets.DB_HOSTNAME }} \
             -e DB_NAME=${{ env.DB_NAME }} \
             ${{ env.REGISTRY }}:${{ needs.build_and_push.outputs.commit_hash }}
+      - name: Sleep for 30 seconds
+        run: sleep 30s
+        shell: bash
+
       - name: Check deployment status
         uses: wei/curl@master
         with:
