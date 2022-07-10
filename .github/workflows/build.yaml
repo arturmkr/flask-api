@@ -1,0 +1,86 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: arturmkr/flask-api
+  DB_NAME: student
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint
+    steps:
+
+      - name: Git checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
+
+  build_and_push:
+    runs-on: ubuntu-latest
+    name: Build and push docker image
+    needs: lint
+    outputs:
+      commit_hash: ${{ steps.commit_hash.outputs.commit_hash }}
+    steps:
+
+      - name: Git checkout
+        uses: actions/checkout@v3
+
+      - id: commit_hash
+        run: echo "::set-output name=commit_hash::${GITHUB_SHA::7}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}:${{ steps.commit_hash.outputs.commit_hash }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    needs: build_and_push
+    env:
+      HOST: ${{ secrets.HOST_1 }}
+      USERNAME: ubuntu
+    steps:
+      - name: Deploy to EC2 instanse via SSH action
+        uses: appleboy/ssh-action@v0.1.3
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ env.USERNAME }}
+          key: ${{ secrets.KEY }}
+          envs: ${{ secrets.DOCKER_USER }}, ${{ secrets.DOCKERHUB_TOKEN }}
+          port: 22
+          script: |
+            docker login -u $DOCKER_USER -p $DOCKERHUB_TOKEN
+            docker stop flask-app
+            docker rm flask-app
+            # Run a new container from a new image
+            docker run -d \
+            --name flask-app \
+            --restart always \
+            -p 5000:5000 \
+            -e DB_USERNAME=$DB_USERNAME \
+            -e DB_PASSWORD=$DB_PASSWORD \
+            -e DB_HOSTNAME=$DB_HOSTNAME \
+            -e DB_NAME=${{ env.DB_NAME }} \
+            ${{ env.REGISTRY }}:${{ needs.build_and_push.outputs.commit_hash }}
