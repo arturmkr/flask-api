@@ -12,6 +12,3 @@ services:
       - DB_PASSWORD=$DB_PASSWORD
       - DB_HOSTNAME=$DB_HOSTNAME
       - DB_NAME=$DB_NAME
-    depends_on:
-      db:
-        condition: service_healthy
