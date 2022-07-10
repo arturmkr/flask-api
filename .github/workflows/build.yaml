@@ -56,17 +56,19 @@ jobs:
             ${{ env.REGISTRY }}:latest
 
   deploy:
+    strategy:
+      matrix:
+        host: [ '18.217.50.28','52.14.12.237']
     runs-on: ubuntu-latest
     name: Deploy
     needs: build_and_push
     env:
-      HOST: ${{ secrets.HOST_1 }}
       USERNAME: ubuntu
     steps:
       - name: Deploy to EC2 instanse via SSH action
         uses: appleboy/ssh-action@v0.1.3
         with:
-          host: ${{ env.HOST }}
+          host: ${{ matrix.host }}
           username: ${{ env.USERNAME }}
           key: ${{ secrets.KEY }}
           envs: ${{ secrets.DOCKER_USER }}, ${{ secrets.DOCKERHUB_TOKEN }}
@@ -85,3 +87,7 @@ jobs:
             -e DB_HOSTNAME=${{ secrets.DB_HOSTNAME }} \
             -e DB_NAME=${{ env.DB_NAME }} \
             ${{ env.REGISTRY }}:${{ needs.build_and_push.outputs.commit_hash }}
+      - name: Check deployment status
+        uses: wei/curl@master
+        with:
+          args: http://${{ matrix.host }}:5000/api/health-check/ok
