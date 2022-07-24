@@ -1,0 +1,76 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-backend
+  namespace: flask-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-backend
+  template:
+    metadata:
+      labels:
+        app: flask-backend
+    spec:
+      containers:
+      - name: flask-backend
+        image: arturmkr/flask-api:latest
+        imagePullPolicy: Always
+        env:
+        - name: FLASK_APP
+          value: api.py
+        - name: FLASK_ENV
+          value: development
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: mysql-username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-password
+        - name: DB_HOSTNAME
+          value: mysql-0.mysql
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: mysql-db-name
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "300m"
+        startupProbe:
+          httpGet:
+            path: /api/health-check/ok
+            port: flask
+          failureThreshold: 5
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health-check/ok
+            port: flask
+          failureThreshold: 5
+          periodSeconds: 3
+        ports:
+        - containerPort: 5000
+          name: flask
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-backend
+  namespace: flask-app
+spec:
+  selector:
+    app: flask-backend
+  ports:
+  - port: 5000
+    targetPort: flask
